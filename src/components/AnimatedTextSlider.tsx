@@ -26,9 +26,6 @@ export default function AnimatedTextSlider({
     return () => clearInterval(interval);
   }, [texts.length, intervalMs]);
 
-  // Custom easing curve for easeInOutQuint
-  const easeInOutQuint = [0.86, 0, 0.07, 1];
-
   const slideVariants = {
     // Initial state - text starts below the container
     initial: {
@@ -41,7 +38,7 @@ export default function AnimatedTextSlider({
       opacity: 1,
       transition: {
         duration: 0.8,
-        ease: easeInOutQuint,
+        ease: [0.86, 0, 0.07, 1] as const,
       },
     },
     // Exit state - text slides up and out
@@ -50,7 +47,7 @@ export default function AnimatedTextSlider({
       opacity: 0,
       transition: {
         duration: 0.8,
-        ease: easeInOutQuint,
+        ease: [0.86, 0, 0.07, 1] as const,
       },
     },
   };

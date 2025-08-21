@@ -51,8 +51,8 @@ export default function NewsTickerText({
     if (containerRef.current) ro.observe(containerRef.current);
 
     // Re-measure after fonts load (avoids jumps)
-    if ((document as any).fonts?.ready) {
-      (document as any).fonts.ready.then(measure).catch(() => {});
+    if ('fonts' in document && document.fonts?.ready) {
+      document.fonts.ready.then(measure).catch(() => {});
     }
 
     return () => ro.disconnect();
