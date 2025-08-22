@@ -86,7 +86,9 @@ class NewsAPIService {
         }
       });
 
-      console.log('Fetching news from:', url.toString());
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Fetching news from:', url.toString());
+      }
 
       const response = await fetch(url.toString(), {
         method: 'GET',
@@ -111,7 +113,9 @@ class NewsAPIService {
 
       return data.data.posts;
     } catch (error) {
-      console.error('Error fetching news posts:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching news posts:', error);
+      }
       
       // Return fallback data on error to ensure ticker still works
       return this.getFallbackPosts();
@@ -217,7 +221,9 @@ class NewsAPIService {
         const newPosts = await this.getTickerPosts();
         posts = newPosts;
       } catch (error) {
-        console.error('Error refreshing posts:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error refreshing posts:', error);
+        }
       }
     };
 

@@ -3,7 +3,6 @@ import { newsAPI, NewsAPIParams } from '@/services/newsApi';
 
 interface UseNewsAPIReturn {
   newsItems: string[];
-  loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
   lastUpdated: Date | null;
@@ -22,7 +21,7 @@ interface UseNewsAPIOptions {
  * Features:
  * - Auto-refresh capability
  * - Error handling with fallback
- * - Loading states
+ * - Immediate data availability (no loading states)
  * - Optimized for ticker performance
  */
 export function useNewsAPI(options: UseNewsAPIOptions = {}): UseNewsAPIReturn {
@@ -32,8 +31,16 @@ export function useNewsAPI(options: UseNewsAPIOptions = {}): UseNewsAPIReturn {
     fetchOnMount = true
   } = options;
 
-  const [newsItems, setNewsItems] = useState<string[]>([]);
-  const [loading, setLoading] = useState<boolean>(fetchOnMount);
+  // Start with fallback data immediately to prevent loading state
+  const fallbackNews = [
+    'الانتخابات القادمة تشبه 2005 ـ الحكيم من اليوسفية: استحقاق مصيري يؤسس للاستقرار المستدام',
+    'مشهد مؤلم.. مصرع عامل بإحدى شركات الكهرباء إثر تعرضه لصدمة كهربائية في الناصرية',
+    'السليمانية تلتهب.. حملة اعتقالات تطال قيادات بارزة في الاتحاد الوطني الكردستاني',
+    'محكمة استئناف في نيويورك تلغي غرامة على ترامب بنحو نصف مليار دولار',
+    'خلال لقائه عدداً من ذوي الضحايا.. السيد الحكيم يدعو إلى تلافي تكرار حادثة الكوت'
+  ];
+
+  const [newsItems, setNewsItems] = useState<string[]>(fallbackNews);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
@@ -41,58 +48,48 @@ export function useNewsAPI(options: UseNewsAPIOptions = {}): UseNewsAPIReturn {
   const isMountedRef = useRef<boolean>(true);
 
   /**
-   * Fetch news data from API
+   * Fetch news data from API (background refresh only)
    */
   const fetchNews = useCallback(async () => {
     if (!isMountedRef.current) return;
 
     try {
-      setLoading(true);
       setError(null);
 
-      console.log('🔄 Fetching latest news from 964 Media API...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Fetching latest news from 964 Media API...');
+      }
 
       const posts = await newsAPI.getTickerPosts();
       
       if (!isMountedRef.current) return;
 
-      if (posts.length === 0) {
-        throw new Error('No news items received from API');
+      if (posts.length > 0) {
+        setNewsItems(posts);
+        setLastUpdated(new Date());
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`✅ Successfully loaded ${posts.length} news items`);
+          console.log('📰 Latest headlines:', posts.slice(0, 2));
+        }
       }
 
-      setNewsItems(posts);
-      setLastUpdated(new Date());
-      setError(null);
-      
-      console.log(`✅ Successfully loaded ${posts.length} news items`);
-      console.log('📰 Latest headlines:', posts.slice(0, 2));
-
     } catch (err) {
-      console.error('❌ Error fetching news:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Error fetching news:', err);
+      }
       
       if (!isMountedRef.current) return;
 
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch news';
       setError(errorMessage);
       
-      // Keep existing news items if available, don't clear them on error
-      if (newsItems.length === 0) {
-        // Only set fallback if no existing data
-        console.log('🔄 Using fallback news data...');
-        setNewsItems([
-          'الانتخابات القادمة تشبه 2005 ـ الحكيم من اليوسفية: استحقاق مصيري يؤسس للاستقرار المستدام',
-          'مشهد مؤلم.. مصرع عامل بإحدى شركات الكهرباء إثر تعرضه لصدمة كهربائية في الناصرية',
-          'السليمانية تلتهب.. حملة اعتقالات تطال قيادات بارزة في الاتحاد الوطني الكردستاني',
-          'محكمة استئناف في نيويورك تلغي غرامة على ترامب بنحو نصف مليار دولار',
-          'خلال لقائه عدداً من ذوي الضحايا.. السيد الحكيم يدعو إلى تلافي تكرار حادثة الكوت'
-        ]);
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
+      // Keep existing news items, never clear them on error
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Keeping existing news data due to API error');
       }
     }
-  }, [newsItems.length]);
+  }, []);
 
   /**
    * Manual refresh function
@@ -110,7 +107,9 @@ export function useNewsAPI(options: UseNewsAPIOptions = {}): UseNewsAPIReturn {
         fetchNews();
       }, refreshInterval);
 
-      console.log(`🔄 Auto-refresh enabled: every ${refreshInterval / 1000} seconds`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔄 Auto-refresh enabled: every ${refreshInterval / 1000} seconds`);
+      }
 
       return () => {
         if (refreshIntervalRef.current) {
@@ -144,7 +143,6 @@ export function useNewsAPI(options: UseNewsAPIOptions = {}): UseNewsAPIReturn {
 
   return {
     newsItems,
-    loading,
     error,
     refresh,
     lastUpdated
