@@ -101,10 +101,10 @@ export default function CompactTimeDisplay({
           exit="exit"
           className="absolute inset-0 flex flex-col items-center justify-center"
         >
-          <div className="text-black text-2xl font-bold text-center leading-tight">
+          <div className="text-black text-lg lg:text-2xl font-bold text-center leading-tight">
             {timeTexts[currentIndex]}
           </div>
-          <div className="text-black text-2xl font-bold text-center">
+          <div className="text-black text-sm lg:text-2xl font-bold text-center">
             {timeLabels[currentIndex]}
           </div>
         </motion.div>

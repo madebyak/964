@@ -15,16 +15,16 @@ export default function NewsTicker3Page() {
     <div className="min-h-screen bg-[#0000ff] flex items-end">
       {/* Main Container at Bottom with 4 sections including separator */}
       <div className="w-full h-20 flex">
-        {/* Left Video Container - ~15% */}
-        <div className="w-[15%] bg-white relative overflow-hidden p-2">
+        {/* Left Video Container - responsive width */}
+        <div className="w-[12%] lg:w-[15%] bg-white relative overflow-hidden p-2">
           <LogoVideo />
         </div>
 
         {/* Yellow separator line - very thin */}
         <div className="w-[0.5%] bg-[#ffd400]"></div>
 
-        {/* Middle News Ticker Container - ~79.5% */}
-        <div className="w-[79.5%] bg-white relative overflow-hidden">
+        {/* Middle News Ticker Container - responsive width */}
+        <div className="w-[77.5%] lg:w-[79.5%] bg-white relative overflow-hidden">
           <NewsTickerText 
             newsItems={newsItems} 
             speed={80} 
@@ -33,8 +33,8 @@ export default function NewsTicker3Page() {
           />
         </div>
 
-        {/* Right Time Container - ~5% */}
-        <div className="w-[5%] bg-[#ffd400] relative">
+        {/* Right Time Container - larger on small screens */}
+        <div className="w-[10%] lg:w-[5%] bg-[#ffd400] relative">
           <CompactTimeDisplay 
             className="h-full"
           />
