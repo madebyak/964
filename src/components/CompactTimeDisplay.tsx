@@ -38,8 +38,8 @@ export default function CompactTimeDisplay({
       }).format(now);
 
       setCurrentTime({
-        baghdad: `${baghdadTime}`,
-        gmt: `${gmtTime}`
+        baghdad: `${baghdadTime} BGD`,
+        gmt: `${gmtTime} GMT`
       });
     };
 
@@ -88,7 +88,6 @@ export default function CompactTimeDisplay({
   };
 
   const timeTexts = [currentTime.baghdad, currentTime.gmt];
-  const timeLabels = ['BGD', 'GMT'];
 
   return (
     <div className={`relative w-full h-full overflow-hidden ${className}`}>
@@ -99,13 +98,10 @@ export default function CompactTimeDisplay({
           initial="initial"
           animate="center"
           exit="exit"
-          className="absolute inset-0 flex flex-col items-center justify-center"
+          className="absolute inset-0 flex items-center justify-center"
         >
-          <div className="text-black text-lg lg:text-2xl font-bold text-center leading-tight">
+          <div className="text-black text-xl lg:text-3xl font-bold text-center">
             {timeTexts[currentIndex]}
-          </div>
-          <div className="text-black text-sm lg:text-2xl font-bold text-center">
-            {timeLabels[currentIndex]}
           </div>
         </motion.div>
       </AnimatePresence>
