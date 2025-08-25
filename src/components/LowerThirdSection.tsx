@@ -11,6 +11,31 @@ export default function LowerThirdSection() {
       src: "/motions/cg-lowerthirds/cg-lowerthird--breakingsingle.mp4", 
       title: "Breaking News Lower Third",
       description: "Breaking news alert graphic for urgent news updates and live reporting"
+    },
+    {
+      src: "/motions/cg-lowerthirds/cg-lowerthird-breaking-single 2.mp4",
+      title: "Breaking Single Alternative",
+      description: "Alternative breaking news lower third design with enhanced visual impact"
+    },
+    {
+      src: "/motions/cg-lowerthirds/location-double.mp4",
+      title: "Location Double",
+      description: "Dual-line location identifier for complex geographical information and extended descriptions"
+    },
+    {
+      src: "/motions/cg-lowerthirds/location-single.mp4",
+      title: "Location Single",
+      description: "Single-line location identifier for broadcast reporting and field coverage"
+    },
+    {
+      src: "/motions/cg-lowerthirds/name-only.mp4",
+      title: "Name Only",
+      description: "Clean name display for guest identification without additional title information"
+    },
+    {
+      src: "/motions/cg-lowerthirds/name-title.mp4",
+      title: "Name & Title",
+      description: "Professional name and title combination for interviews and expert commentary"
     }
   ];
 

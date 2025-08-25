@@ -3,6 +3,7 @@
 import Navbar from '@/components/Navbar';
 import DarkVeil from '@/components/DarkVeil';
 import LowerThirdSection from '@/components/LowerThirdSection';
+import ScreenLayoutSection from '@/components/ScreenLayoutSection';
 
 export default function Home() {
   return (
@@ -142,6 +143,9 @@ export default function Home() {
 
       {/* Lower Third Section */}
       <LowerThirdSection />
+
+      {/* Screen Layout Section */}
+      <ScreenLayoutSection />
     </div>
   );
 }
