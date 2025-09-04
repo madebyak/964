@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server';
 
+// Try different proxy services to bypass Cloudflare
+const PROXY_SERVICES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://cors-anywhere.herokuapp.com/',
+  'https://proxy.cors.sh/',
+];
+
 const EXTERNAL_API_URL = 'https://apirouter.964media.com/v1/ar/posts/feed';
 
 export async function GET(request: Request) {
@@ -18,60 +25,84 @@ export async function GET(request: Request) {
   });
 
   try {
+    // Try multiple approaches to bypass Cloudflare
     const apiUrl = `${EXTERNAL_API_URL}?${params.toString()}`;
     
     if (process.env.NODE_ENV === 'development') {
-      console.log('News Content Proxy → fetching:', apiUrl);
+      console.log('News Content Proxy → trying multiple methods for:', apiUrl);
     }
 
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (compatible; NewsContentProxy/1.0)',
-        // Add any other headers that might help bypass restrictions
-      },
-      // Ensure fresh data from the external API
-      cache: 'no-store',
-    });
+    // Method 1: Direct fetch with enhanced headers
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept-Language': 'ar,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'DNT': '1',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1',
+        },
+        cache: 'no-store',
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`News content proxy fetch failed: HTTP ${response.status} - ${response.statusText}`);
-      console.error('Response body:', errorText);
-      
-      return new NextResponse(
-        JSON.stringify({ 
-          error: `Failed to fetch news content: ${response.statusText}`,
-          details: errorText.slice(0, 500) // First 500 chars for debugging
-        }), 
-        {
-          status: response.status,
-          headers: {
-            'Content-Type': 'application/json',
-          },
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('News Content Proxy → direct fetch succeeded');
         }
-      );
+        
+        return NextResponse.json(data);
+      }
+    } catch (directError) {
+      console.log('Direct fetch failed, trying proxy services...');
     }
 
-    const data = await response.json();
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('News Content Proxy → success');
-      if (Array.isArray(data?.data?.posts) && data.data.posts.length > 0) {
-        const firstPost = data.data.posts[0];
-        console.log('Sample post content:', {
-          id: firstPost.id,
-          title: firstPost.title?.slice(0, 50) + '...',
-          hasContentRendered: Boolean(firstPost.content_rendered),
-          contentRenderedLength: firstPost.content_rendered?.length || 0,
-          hasContentText: Boolean(firstPost.content_text),
-          contentTextLength: firstPost.content_text?.length || 0,
+    // Method 2: Try proxy services
+    for (const proxyService of PROXY_SERVICES) {
+      try {
+        const proxyUrl = `${proxyService}${encodeURIComponent(apiUrl)}`;
+        
+        const response = await fetch(proxyUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+          cache: 'no-store',
         });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`News Content Proxy → ${proxyService} succeeded`);
+          }
+          
+          return NextResponse.json(data);
+        }
+      } catch (proxyError) {
+        console.log(`Proxy ${proxyService} failed, trying next...`);
+        continue;
       }
     }
 
-    return NextResponse.json(data);
+    // If all methods fail
+    console.error('All proxy methods failed for news content');
+    return new NextResponse(
+      JSON.stringify({ 
+        error: 'All proxy methods failed',
+        details: 'Both direct fetch and proxy services were blocked'
+      }), 
+      {
+        status: 503,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error in news content proxy route:', error);
     return new NextResponse(
