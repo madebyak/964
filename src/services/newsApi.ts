@@ -67,6 +67,43 @@ export interface NewsAPIParams {
 
 class NewsAPIService {
   private baseURL = 'https://apirouter.964media.com/v1/ar/posts';
+  private contentProxyURL = '/api/news-content'; // Local proxy for full content
+
+  /**
+   * Decode HTML entities to proper characters
+   * Handles common HTML entities from WordPress APIs including Arabic text
+   */
+  private decodeHTMLEntities(text: string): string {
+    if (!text || typeof text !== 'string') return text;
+    
+    return text
+      // Hexadecimal numeric character references (common with Arabic text)
+      .replace(/&#x([0-9A-Fa-f]+);/g, (match, hex) => {
+        const codePoint = parseInt(hex, 16);
+        return String.fromCharCode(codePoint);
+      })
+      // Decimal numeric character references
+      .replace(/&#([0-9]+);/g, (match, num) => {
+        const codePoint = parseInt(num, 10);
+        return String.fromCharCode(codePoint);
+      })
+      // Named HTML entities
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;quot;/g, '"')  // Double-encoded quotes
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&apos;/g, "'")
+      .replace(/&#039;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&ndash;/g, '\u2013')  // En dash
+      .replace(/&mdash;/g, '\u2014')  // Em dash
+      .replace(/&hellip;/g, '\u2026') // Horizontal ellipsis
+      .replace(/&rsquo;/g, '\u2019')  // Right single quotation mark
+      .replace(/&lsquo;/g, '\u2018')  // Left single quotation mark
+      .replace(/&rdquo;/g, '\u201D')  // Right double quotation mark
+      .replace(/&ldquo;/g, '\u201C'); // Left double quotation mark
+  }
 
   /**
    * Fetch posts from 964 Media API
@@ -119,6 +156,97 @@ class NewsAPIService {
       
       // Return fallback data on error to ensure ticker still works
       return this.getFallbackPosts();
+    }
+  }
+
+  /**
+   * Fetch posts with full content (including article body) via proxy
+   * Uses local API proxy to bypass Cloudflare restrictions
+   */
+  async fetchPostsWithContent(params: NewsAPIParams = {}): Promise<Post[]> {
+    try {
+      // Build URL - handle server-side vs client-side
+      const baseUrl = typeof window === 'undefined' 
+        ? (process.env.NEXTAUTH_URL || 'http://localhost:3000')
+        : '';
+      
+      const searchParams = new URLSearchParams();
+      
+      // Add query parameters
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          if (Array.isArray(value)) {
+            searchParams.append(key, value.join(','));
+          } else {
+            searchParams.append(key, String(value));
+          }
+        }
+      });
+
+      let urlString = `${baseUrl}${this.contentProxyURL}`;
+      if (searchParams.toString()) {
+        urlString += `?${searchParams.toString()}`;
+      }
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('News Content API (via proxy) → fetching:', urlString);
+      }
+
+      const response = await fetch(urlString, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-cache',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data: APIResponse = await response.json();
+
+      // Validate response structure
+      if (!data.data?.posts || !Array.isArray(data.data.posts)) {
+        throw new Error('Invalid API response structure');
+      }
+
+      // Decode HTML entities in content fields
+      const postsWithDecodedContent = data.data.posts.map(post => ({
+        ...post,
+        title: this.decodeHTMLEntities(post.title || ''),
+        subtitle: post.subtitle ? this.decodeHTMLEntities(post.subtitle) : post.subtitle,
+        content_rendered: post.content_rendered ? this.decodeHTMLEntities(post.content_rendered) : post.content_rendered,
+        content_text: post.content_text ? this.decodeHTMLEntities(post.content_text) : post.content_text,
+      }));
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✅ News Content API success: fetched ${postsWithDecodedContent.length} posts with content`);
+        if (postsWithDecodedContent.length > 0) {
+          const firstPost = postsWithDecodedContent[0];
+          console.log('📰 Sample post with content:', {
+            id: firstPost.id,
+            title: firstPost.title?.slice(0, 50) + '...',
+            hasContentRendered: Boolean(firstPost.content_rendered),
+            contentRenderedLength: firstPost.content_rendered?.length || 0,
+            hasContentText: Boolean(firstPost.content_text),
+            contentTextLength: firstPost.content_text?.length || 0,
+          });
+        }
+      }
+
+      return postsWithDecodedContent;
+    } catch (error) {
+      console.error('News Content API error:', error);
+      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+      
+      // Fallback: try to get basic posts without content
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Falling back to basic posts API...');
+      }
+      
+      return this.fetchPosts(params);
     }
   }
 

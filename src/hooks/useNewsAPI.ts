@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { newsAPI, NewsAPIParams } from '@/services/newsApi';
+import { wiresAPI, WireHeadline } from '@/services/wiresApi';
 
 interface UseNewsAPIReturn {
   newsItems: string[];
@@ -164,6 +165,211 @@ export function useNewsTicker() {
       order: 'desc',
       type: 'any'
     }
+  });
+}
+
+// Iraq Wires API Hook Interfaces
+interface UseWiresAPIReturn {
+  wireHeadlines: WireHeadline[];
+  error: string | null;
+  refresh: () => Promise<void>;
+  lastUpdated: Date | null;
+}
+
+interface UseWiresAPIOptions {
+  autoRefresh?: boolean;
+  refreshInterval?: number;
+  fetchOnMount?: boolean;
+  wiresParams?: { limit?: number };
+  initialData?: WireHeadline[]; // Pre-fetched server data
+}
+
+/**
+ * Custom hook for Iraq Wires headlines (following news-ticker success pattern)
+ * 
+ * Features:
+ * - Immediate fallback data (no loading states)
+ * - Auto-refresh capability
+ * - Error handling with graceful fallback
+ * - Background API updates
+ */
+export function useWiresAPI(options: UseWiresAPIOptions = {}): UseWiresAPIReturn {
+  const {
+    autoRefresh = true,
+    refreshInterval = 300000, // 5 minutes
+    fetchOnMount = true,
+    wiresParams = {},
+    initialData
+  } = options;
+
+  // Use initialData if provided, otherwise fallback data
+  const fallbackWires: WireHeadline[] = [
+    {
+      id: '1',
+      title: 'وزارة الصحة: ارتفاع نسب التطعيم في المحافظات',
+      date: new Date().toISOString(),
+      source: {
+        name: 'وزارة الصحة',
+        slug: 'ministry-health',
+        icon: '',
+        permalink: '#',
+        type: 'government'
+      },
+      permalink: '#'
+    },
+    {
+      id: '2', 
+      title: 'المرور: خطة لتحسين انسيابية حركة السير في العاصمة',
+      date: new Date().toISOString(),
+      source: {
+        name: 'مديرية المرور العامة',
+        slug: 'traffic-dept',
+        icon: '',
+        permalink: '#', 
+        type: 'government'
+      },
+      permalink: '#'
+    },
+    {
+      id: '3',
+      title: 'المنتخب الوطني يستعد لمباراة ودية الأسبوع المقبل',
+      date: new Date().toISOString(),
+      source: {
+        name: 'الاتحاد العراقي لكرة القدم',
+        slug: 'iraq-fa',
+        icon: '',
+        permalink: '#',
+        type: 'sports'
+      },
+      permalink: '#'
+    }
+  ];
+
+  const [wireHeadlines, setWireHeadlines] = useState<WireHeadline[]>(
+    initialData && initialData.length > 0 ? initialData : fallbackWires
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef<boolean>(true);
+
+  /**
+   * Fetch wires data from API (background refresh only)
+   */
+  const fetchWires = useCallback(async () => {
+    if (!isMountedRef.current) return;
+
+    try {
+      setError(null);
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Fetching latest Iraq Wires headlines...');
+      }
+
+      const headlines = await wiresAPI.fetchHeadlines({ limit: wiresParams.limit });
+      
+      if (!isMountedRef.current) return;
+
+      if (headlines.length > 0) {
+        setWireHeadlines(headlines);
+        setLastUpdated(new Date());
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`✅ Successfully loaded ${headlines.length} wire headlines`);
+          console.log('📰 Latest headlines:', headlines.slice(0, 2).map(h => h.title));
+        }
+      }
+
+    } catch (err) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Error fetching wires:', err);
+      }
+      
+      if (!isMountedRef.current) return;
+
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch wires';
+      setError(errorMessage);
+      
+      // Keep existing wire headlines, never clear them on error
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Keeping existing wires data due to API error');
+      }
+    }
+  }, [wiresParams.limit]);
+
+  /**
+   * Manual refresh function
+   */
+  const refresh = useCallback(async () => {
+    await fetchWires();
+  }, [fetchWires]);
+
+  /**
+   * Set up auto-refresh interval
+   */
+  useEffect(() => {
+    if (autoRefresh && refreshInterval > 0) {
+      refreshIntervalRef.current = setInterval(() => {
+        fetchWires();
+      }, refreshInterval);
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔄 Iraq Wires auto-refresh enabled: every ${refreshInterval / 1000} seconds`);
+      }
+
+      return () => {
+        if (refreshIntervalRef.current) {
+          clearInterval(refreshIntervalRef.current);
+          refreshIntervalRef.current = null;
+        }
+      };
+    }
+  }, [autoRefresh, refreshInterval, fetchWires]);
+
+  /**
+   * Initial data fetch (only if no initialData provided)
+   */
+  useEffect(() => {
+    const hasInitialData = initialData && initialData.length > 0;
+    if (fetchOnMount && !hasInitialData) {
+      fetchWires();
+    }
+  }, [fetchOnMount, fetchWires, initialData]);
+
+  /**
+   * Cleanup on unmount
+   */
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
+  }, []);
+
+  return {
+    wireHeadlines,
+    error,
+    refresh,
+    lastUpdated
+  };
+}
+
+/**
+ * Custom hook for Iraq Wires headlines
+ * Following the same successful pattern as useNewsTicker
+ */
+export function useIraqWires(initialData?: WireHeadline[]) {
+  return useWiresAPI({
+    autoRefresh: true,
+    refreshInterval: 300000, // 5 minutes
+    fetchOnMount: true,
+    wiresParams: {
+      limit: 20
+    },
+    initialData
   });
 }
 

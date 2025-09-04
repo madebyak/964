@@ -70,4 +70,118 @@ body {
   direction: rtl;
 }
 
+@keyframes vh-scroll {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+/* Professional staggered article rotation animations */
+
+/* SLIDE-OUT ANIMATIONS (RTL - slide to right) */
+
+/* Subtitle slides out first (0ms delay) */
+@keyframes subtitle-slide-out {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+.animate-subtitle-slide-out {
+  animation: subtitle-slide-out 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Title slides out second (500ms delay) - SIMPLE like subtitle */
+@keyframes title-slide-out {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+.animate-title-slide-out {
+  animation: title-slide-out 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s forwards;
+}
+
+/* Date slides out third (1000ms delay) - SIMPLE like subtitle */
+@keyframes date-slide-out {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+.animate-date-slide-out {
+  animation: date-slide-out 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 1s forwards;
+}
+
+/* Content fades out (1500ms delay) */
+@keyframes content-fade-out {
+  0% { opacity: 1; }
+  75% { opacity: 1; } /* Wait 750ms */
+  100% { opacity: 0; }
+}
+
+.animate-content-fade-out {
+  animation: content-fade-out 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s forwards;
+}
+
+/* Image slides out (masking effect - right to left) */
+@keyframes image-slide-out {
+  0% { transform: translateX(0); }
+  75% { transform: translateX(0); } /* Wait 750ms */
+  100% { transform: translateX(100%); }
+}
+
+.animate-image-slide-out {
+  animation: image-slide-out 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s forwards;
+}
+
+/* SLIDE-IN ANIMATIONS (RTL - slide from RIGHT to LEFT) */
+
+/* Subtitle slides in first (0ms delay) - FROM RIGHT */
+@keyframes subtitle-slide-in {
+  from { transform: translateX(100%); }  /* Start from right side */
+  to { transform: translateX(0); }
+}
+
+.animate-subtitle-slide-in {
+  animation: subtitle-slide-in 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Title slides in second - FROM RIGHT (same as subtitle) */
+@keyframes title-slide-in {
+  from { transform: translateX(100%); }  /* Start from right side */
+  to { transform: translateX(0); }
+}
+
+.animate-title-slide-in {
+  animation: title-slide-in 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s forwards;
+}
+
+/* Date slides in third - FROM RIGHT (same pattern) */
+@keyframes date-slide-in {
+  from { transform: translateX(100%); }  /* Start from right side */
+  to { transform: translateX(0); }
+}
+
+.animate-date-slide-in {
+  animation: date-slide-in 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s forwards;
+}
+
+/* Content fades in after title/date (800ms delay) */
+@keyframes content-fade-in {
+  0% { opacity: 0; }
+  80% { opacity: 0; } /* Wait 800ms */
+  100% { opacity: 1; }
+}
+
+.animate-content-fade-in {
+  animation: content-fade-in 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Image slides in (masking effect - left to right) */
+@keyframes image-slide-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-image-slide-in {
+  animation: image-slide-in 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
 
