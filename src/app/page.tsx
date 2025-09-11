@@ -4,6 +4,7 @@ import Navbar from '@/components/Navbar';
 import DarkVeil from '@/components/DarkVeil';
 import LowerThirdSection from '@/components/LowerThirdSection';
 import ScreenLayoutSection from '@/components/ScreenLayoutSection';
+import APIFeedSection from '@/components/APIFeedSection';
 
 export default function Home() {
   return (
@@ -146,6 +147,9 @@ export default function Home() {
 
       {/* Screen Layout Section */}
       <ScreenLayoutSection />
+
+      {/* API Feed Pages Section */}
+      <APIFeedSection />
     </div>
   );
 }
