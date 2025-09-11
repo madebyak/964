@@ -4,11 +4,11 @@ import ArticleRotator from '@/components/ArticleRotator';
 export const revalidate = 0; // always fetch latest
 
 export default async function Article01Page() {
-  // Server-side fetch of multiple posts for rotation (using working endpoint)
-  const initialPosts = await newsAPI.fetchPosts({ 
-    limit: 15, 
-    orderby: 'date', 
-    order: 'desc' 
+  // Server-side fetch WITH CONTENT to avoid initial blank article body
+  const initialPosts = await newsAPI.fetchPostsWithContent({
+    limit: 15,
+    orderby: 'date',
+    order: 'desc',
   });
 
   if (process.env.NODE_ENV === 'development') {

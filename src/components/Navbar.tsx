@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function Navbar() {
   return (
@@ -18,9 +19,29 @@ export default function Navbar() {
             />
           </div>
           
-          {/* Navigation items - can be added later */}
-          <div className="hidden md:flex items-center space-x-8">
-            {/* Future navigation items */}
+          {/* Navigation items */}
+          <div className="hidden md:flex items-center space-x-8 rtl:space-x-reverse">
+            <Link 
+              href="/" 
+              className="text-white/80 hover:text-white transition-colors duration-200 arabic-font"
+              dir="rtl"
+            >
+              الرئيسية
+            </Link>
+            <Link 
+              href="/weather" 
+              className="text-white/80 hover:text-white transition-colors duration-200 arabic-font"
+              dir="rtl"
+            >
+              أحوال الطقس
+            </Link>
+            <Link 
+              href="/iraq-wires" 
+              className="text-white/80 hover:text-white transition-colors duration-200 arabic-font"
+              dir="rtl"
+            >
+              أخبار العراق
+            </Link>
           </div>
         </div>
       </div>

@@ -32,18 +32,14 @@ export async function GET(request: Request) {
       console.log('News Content Proxy → trying multiple methods for:', apiUrl);
     }
 
-    // Method 1: Direct fetch with enhanced headers
+    // Method 1: Direct fetch with enhanced headers + x-request-secret
     try {
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Accept-Language': 'ar,en;q=0.9',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'DNT': '1',
-          'Connection': 'keep-alive',
-          'Upgrade-Insecure-Requests': '1',
+          'Content-Type': 'application/json',
+          'x-request-secret': process.env.WIRES_REQUEST_SECRET || '',
         },
         cache: 'no-store',
       });
@@ -61,7 +57,7 @@ export async function GET(request: Request) {
       console.log('Direct fetch failed, trying proxy services...');
     }
 
-    // Method 2: Try proxy services
+    // Method 2: Try proxy services (legacy fallback)
     for (const proxyService of PROXY_SERVICES) {
       try {
         const proxyUrl = `${proxyService}${encodeURIComponent(apiUrl)}`;

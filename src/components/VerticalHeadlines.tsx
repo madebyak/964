@@ -73,7 +73,7 @@ export default function VerticalHeadlines({
                 {loopItems.map((item, idx) => (
           <div key={`${item.id}-${idx}`} className="py-4 border-b border-gray-700/70 last:border-b-0">
             {/* Headline */}
-            <div className={`text-4xl text-white leading-relaxed mb-3 ${tsTarek.className}`}>
+            <div className={`text-5xl font-bold text-white leading-relaxed mb-3 ${tsTarek.className}`}>
               {item.title}
             </div>
             
@@ -94,14 +94,14 @@ export default function VerticalHeadlines({
                 )}
                 
                 {/* Source Name */}
-                <div className={`text-lg text-black font-bold ${tsTarek.className}`}>
+                <div className={`text-2xl text-black font-bold ${tsTarek.className}`}>
                   {item.source?.name || 'مصدر غير محدد'}
                 </div>
               </div>
               
               {/* Time */}
               {item.date && (
-                <div className={`text-xl text-white mr-auto ${tsTarek.className}`}>
+                <div className={`text-2xl text-white mr-auto ${tsTarek.className}`}>
                   {new Date(item.date).toLocaleTimeString('ar-IQ', {
                     hour: '2-digit',
                     minute: '2-digit'

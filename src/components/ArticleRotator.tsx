@@ -17,6 +17,19 @@ export default function ArticleRotator({
   rotationInterval = 30000, // 30 seconds
   transitionDuration = 1600, // 1.6 seconds total transition
 }: ArticleRotatorProps) {
+  // Unified animation timing constants (ms)
+  const OUT_MS = 1200;
+  const IN_MS = 1200;
+  const STAGGER_MS = 300; // descriptive, for CSS to match
+  const MEDIA_READY_TIMEOUT_MS = 900;
+
+  // Dev-safe logger
+  const devLog = (...args: unknown[]) => {
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.log(...args);
+    }
+  };
   const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -25,6 +38,62 @@ export default function ArticleRotator({
   const rotationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const phaseRef = useRef(animationPhase);
+  useEffect(() => {
+    phaseRef.current = animationPhase;
+  }, [animationPhase]);
+
+  // Helper: compute primary media URL for a post (image or video)
+  const resolvePrimaryMedia = useCallback((post: Post | null | undefined) => {
+    if (!post) return { image: '', video: '' };
+    const image = post.featured_image?.sizes?.large
+      || post.featured_image?.sizes?.full
+      || post.featured_image?.sizes?.medium_large
+      || post.featured_image?.sizes?.medium
+      || '';
+    const video = post.featured_video?.mp4 || '';
+    return { image, video };
+  }, []);
+
+  // Helper: wait for media readiness (non-blocking with timeout)
+  const waitForMediaReady = useCallback((post: Post | null | undefined): Promise<void> => {
+    const { image, video } = resolvePrimaryMedia(post);
+    const tasks: Promise<void>[] = [];
+    if (video) {
+      tasks.push(new Promise<void>((resolve) => {
+        try {
+          const v = document.createElement('video');
+          v.preload = 'metadata';
+          v.src = video;
+          const onReady = () => {
+            v.removeEventListener('loadedmetadata', onReady);
+            v.removeEventListener('error', onReady);
+            resolve();
+          };
+          v.addEventListener('loadedmetadata', onReady);
+          v.addEventListener('error', onReady);
+        } catch {
+          resolve();
+        }
+      }));
+    } else if (image) {
+      tasks.push(new Promise<void>((resolve) => {
+        try {
+          const img = new window.Image();
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+          img.src = image;
+        } catch {
+          resolve();
+        }
+      }));
+    } else {
+      // No media to wait for
+      tasks.push(Promise.resolve());
+    }
+    const timeout = new Promise<void>((resolve) => setTimeout(resolve, MEDIA_READY_TIMEOUT_MS));
+    return Promise.race([Promise.all(tasks).then(() => {}), timeout]);
+  }, [MEDIA_READY_TIMEOUT_MS, resolvePrimaryMedia]);
 
   // Get current post
   const currentPost = posts[currentIndex] || null;
@@ -70,15 +139,14 @@ export default function ArticleRotator({
     if (isTransitioning || posts.length <= 1) return;
 
     setIsTransitioning(true);
-    console.log('🎬 Starting staggered slide-out animation sequence...');
+    devLog('🎬 out: start', { index: currentIndex, id: posts[currentIndex]?.id });
     
     // Phase 1: Start slide-out animation sequence
     setAnimationPhase('out');
     
-    // Total slide-out duration: 2 seconds with staggered elements
-    // Subtitle (0ms) -> Title (500ms) -> Date (1000ms) -> Content/Image (1500ms)
+    // Slide-out duration unified with CSS
     transitionTimeoutRef.current = setTimeout(() => {
-      console.log('🔄 Slide-out complete, switching to next post...');
+      devLog('🔄 out: complete', { index: currentIndex, id: posts[currentIndex]?.id });
       
       // Switch to next post AND set to 'ready-to-slide-in' state simultaneously
       const nextIndex = (currentIndex + 1) % posts.length;
@@ -89,21 +157,40 @@ export default function ArticleRotator({
       const followingIndex = (nextIndex + 1) % posts.length;
       preloadNextMedia(followingIndex);
       
-      // Start slide-in animation immediately (no delays)
-      transitionTimeoutRef.current = setTimeout(() => {
-        setAnimationPhase('in');
-        console.log('🎬 Starting staggered slide-in animation sequence...');
-        
-        // Complete transition after slide-in sequence (2 seconds)
-        transitionTimeoutRef.current = setTimeout(() => {
-          console.log('✅ Transition complete, returning to display phase');
-          setAnimationPhase('display');
-          setIsTransitioning(false);
-        }, 2000); // 2 seconds for slide-in sequence
-        
-      }, 100); // Brief delay to ensure React has updated DOM with new content
+      // Ensure the 'ready' phase styles apply before slide-in (raf gating)
+      const nextPost = posts[nextIndex];
+      requestAnimationFrame(() => {
+        waitForMediaReady(nextPost).finally(() => {
+          setAnimationPhase('in');
+          devLog('🎬 in: start', { index: nextIndex, id: nextPost?.id });
+          
+          // Complete transition after slide-in sequence
+          transitionTimeoutRef.current = setTimeout(() => {
+            devLog('✅ in: complete → display', { index: nextIndex, id: nextPost?.id });
+            setAnimationPhase('display');
+            setIsTransitioning(false);
+          }, IN_MS);
+
+          // Watchdog: if still not in display after grace, force-complete
+          setTimeout(() => {
+            if (phaseRef.current !== 'display') {
+              devLog('⚠️ watchdog: forcing display phase');
+              setAnimationPhase('display');
+              setIsTransitioning(false);
+            }
+          }, IN_MS + 400);
+        });
+      });
       
-    }, 2000); // 2 seconds for slide-out sequence
+    }, OUT_MS);
+
+    // Watchdog for out-phase
+    setTimeout(() => {
+      if (phaseRef.current === 'out') {
+        devLog('⚠️ watchdog: still in out-phase, forcing ready');
+        setAnimationPhase('ready-to-slide-in');
+      }
+    }, OUT_MS + 400);
   }, [currentIndex, posts.length, isTransitioning, preloadNextMedia]);
 
   // Cleanup function for all timers
@@ -154,12 +241,15 @@ export default function ArticleRotator({
     }
 
     return () => {
+      // Clear background interval
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
         refreshIntervalRef.current = null;
       }
+      // Clear any pending timeouts
+      cleanupTimers();
     };
-  }, [posts.length, currentIndex, refreshPosts, preloadNextMedia]);
+  }, [posts.length, currentIndex, refreshPosts, preloadNextMedia, cleanupTimers]);
 
   // Simple rotation timer - start immediately for testing
   useEffect(() => {
@@ -171,6 +261,11 @@ export default function ArticleRotator({
       
       const timerId = setTimeout(() => {
         console.log(`🔄 ${testInterval/1000} seconds up! Transitioning from post ${currentIndex + 1} to ${((currentIndex + 1) % posts.length) + 1}`);
+        // Clear any pending transition timers before starting a new one
+        if (transitionTimeoutRef.current) {
+          clearTimeout(transitionTimeoutRef.current);
+          transitionTimeoutRef.current = null;
+        }
         transitionToNextPost();
       }, testInterval);
 
@@ -184,6 +279,45 @@ export default function ArticleRotator({
       };
     }
   }, [currentIndex, posts.length, isTransitioning, rotationInterval, transitionToNextPost]); // Reset timer when currentIndex changes
+
+  // Clamp currentIndex after posts refresh to valid range
+  useEffect(() => {
+    if (posts.length === 0) return;
+    if (currentIndex >= posts.length) {
+      setCurrentIndex(posts.length - 1);
+    }
+  }, [posts.length]);
+
+  // Cancel transition if posts mutate during animation
+  useEffect(() => {
+    if (isTransitioning) {
+      devLog('🔁 posts mutated during transition → cancel current animation');
+      cleanupTimers();
+      setAnimationPhase('display');
+      setIsTransitioning(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [posts]);
+
+  // Pause rotation on tab hidden; resume on visible
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.hidden) {
+        devLog('⏸ visibility: hidden → pause timers');
+        cleanupTimers();
+      } else {
+        devLog('▶️ visibility: visible → resume');
+        if (!isTransitioning && posts.length > 1) {
+          // kick a gentle timer to continue
+          rotationTimeoutRef.current = setTimeout(() => {
+            transitionToNextPost();
+          }, 500);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [cleanupTimers, isTransitioning, posts.length, transitionToNextPost]);
 
   // Development debugging
   useEffect(() => {
@@ -287,7 +421,7 @@ export default function ArticleRotator({
             {/* Date - animates third (1s delay) */}
             {dateStr && (
               <div className="overflow-hidden">
-                <div className={`text-2xl opacity-70 text-right transition-transform duration-[800ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
+                <div className={`text-3xl opacity-70 text-right transition-transform duration-[800ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
                   animationPhase === 'out' ? 'animate-date-slide-out' : 
                   animationPhase === 'ready-to-slide-in' ? 'transform translate-x-full' :
                   animationPhase === 'in' ? 'animate-date-slide-in' : 
@@ -310,13 +444,13 @@ export default function ArticleRotator({
               <AutoScrollContent
                 key={`content-${currentPost.id}`} // Force remount for each post
                 htmlContent={articleHTML}
-                className={`text-3xl leading-relaxed text-right ${tsTarek.className}`}
+                className={`text-4xl font-medium leading-normal text-right ${tsTarek.className}`}
                 characterThreshold={488}
                 freezeDelay={5000}
                 scrollSpeed={8}
               />
             ) : (
-              <div className={`text-3xl leading-relaxed text-right ${tsTarek.className}`}>
+              <div className={`text-4xl leading-relaxed text-right ${tsTarek.className}`}>
                 <p className="text-gray-400">لا يوجد نص للمقال حالياً</p>
               </div>
             )}

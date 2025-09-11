@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { newsAPI, NewsAPIParams } from '@/services/newsApi';
 import { wiresAPI, WireHeadline } from '@/services/wiresApi';
+import { meWiresAPI } from '@/services/meWiresApi';
 
 interface UseNewsAPIReturn {
   newsItems: string[];
@@ -372,5 +373,65 @@ export function useIraqWires(initialData?: WireHeadline[]) {
     initialData
   });
 }
+// ME Wires hook (Middle East/global) using new meWiresAPI service
+export function useMeWires(initialData?: WireHeadline[], options?: { country?: string; limit?: number }) {
+  const country = options?.country ?? 'global';
+  const limit = options?.limit ?? 20;
+
+  // Reuse the same structure/state logic as useWiresAPI but fetch from meWiresAPI
+  const [wireHeadlines, setWireHeadlines] = useState<WireHeadline[]>(
+    initialData && initialData.length > 0 ? initialData : []
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef<boolean>(true);
+
+  const fetchWires = useCallback(async () => {
+    if (!isMountedRef.current) return;
+    try {
+      setError(null);
+      const headlines = await meWiresAPI.fetchHeadlines({ country, limit });
+      if (!isMountedRef.current) return;
+      if (headlines.length > 0) {
+        setWireHeadlines(headlines);
+        setLastUpdated(new Date());
+      }
+    } catch (err) {
+      if (!isMountedRef.current) return;
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch me wires';
+      setError(errorMessage);
+    }
+  }, [country, limit]);
+
+  const refresh = useCallback(async () => {
+    await fetchWires();
+  }, [fetchWires]);
+
+  useEffect(() => {
+    refreshIntervalRef.current = setInterval(() => {
+      fetchWires();
+    }, 300000);
+    return () => {
+      if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
+      refreshIntervalRef.current = null;
+    };
+  }, [fetchWires]);
+
+  useEffect(() => {
+    const hasInitial = initialData && initialData.length > 0;
+    if (!hasInitial) fetchWires();
+  }, [fetchWires, initialData]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
+    };
+  }, []);
+
+  return { wireHeadlines, error, refresh, lastUpdated };
+}
+
 
 export default useNewsAPI;
