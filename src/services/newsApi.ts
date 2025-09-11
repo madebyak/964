@@ -166,8 +166,14 @@ class NewsAPIService {
   async fetchPostsWithContent(params: NewsAPIParams = {}): Promise<Post[]> {
     try {
       // Build URL - handle server-side vs client-side
-      const baseUrl = typeof window === 'undefined' 
-        ? (process.env.NEXTAUTH_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+      // Determine base URL for server-side fetches (Vercel/Node)
+      // Priority: NEXTAUTH_URL → VERCEL_URL → localhost
+      // Note: VERCEL_URL is the hostname only; must prefix with https://
+      const baseUrl = typeof window === 'undefined'
+        ? (
+            process.env.NEXTAUTH_URL
+              || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+          )
         : '';
       
       const searchParams = new URLSearchParams();
