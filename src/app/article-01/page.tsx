@@ -1,12 +1,19 @@
 import { newsAPI } from '@/services/newsApi';
+import { headers } from 'next/headers';
 import ArticleRotator from '@/components/ArticleRotator';
 
 export const revalidate = 0; // always fetch latest
 
 export default async function Article01Page() {
-  // Determine server base URL from headers/env for SSR fetch
-  // In Vercel, prefer NEXTAUTH_URL, then VERCEL_URL; otherwise construct from headers
-  const serverBaseUrl = process.env.NEXTAUTH_URL
+  // Determine server base URL from request headers first (robust on Vercel)
+  const h = headers();
+  const forwardedProto = h.get('x-forwarded-proto') || 'https';
+  const forwardedHost = h.get('x-forwarded-host') || h.get('host') || process.env.VERCEL_URL;
+  const headerOrigin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : undefined;
+
+  // Fallback to env-derived origin if headers missing
+  const serverBaseUrl = headerOrigin
+    || process.env.NEXTAUTH_URL
     || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
 
   // Server-side fetch WITH CONTENT to avoid initial blank article body
