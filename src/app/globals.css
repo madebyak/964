@@ -109,7 +109,7 @@ body {
   animation: date-slide-out 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 1s forwards;
 }
 
-/* Content fades out (1500ms delay) */
+/* Content fades out (matches JS: OUT_MS=1200) */
 @keyframes content-fade-out {
   0% { opacity: 1; }
   75% { opacity: 1; } /* Wait 750ms */
@@ -117,10 +117,10 @@ body {
 }
 
 .animate-content-fade-out {
-  animation: content-fade-out 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s forwards;
+  animation: content-fade-out 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.6s forwards;
 }
 
-/* Image slides out (masking effect - right to left) */
+/* Image slides out (masking effect - right to left) matches JS OUT_MS=1200 */
 @keyframes image-slide-out {
   0% { transform: translateX(0); }
   75% { transform: translateX(0); } /* Wait 750ms */
@@ -128,7 +128,7 @@ body {
 }
 
 .animate-image-slide-out {
-  animation: image-slide-out 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s forwards;
+  animation: image-slide-out 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.6s forwards;
 }
 
 /* SLIDE-IN ANIMATIONS (RTL - slide from RIGHT to LEFT) */
@@ -163,7 +163,7 @@ body {
   animation: date-slide-in 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s forwards;
 }
 
-/* Content fades in after title/date (800ms delay) */
+/* Content fades in after title/date matches JS IN_MS=1200 */
 @keyframes content-fade-in {
   0% { opacity: 0; }
   80% { opacity: 0; } /* Wait 800ms */
@@ -171,17 +171,17 @@ body {
 }
 
 .animate-content-fade-in {
-  animation: content-fade-in 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation: content-fade-in 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
-/* Image slides in (masking effect - left to right) */
+/* Image slides in (masking effect - left to right) matches JS IN_MS=1200 */
 @keyframes image-slide-in {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
 }
 
 .animate-image-slide-in {
-  animation: image-slide-in 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation: image-slide-in 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 

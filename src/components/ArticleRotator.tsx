@@ -238,9 +238,7 @@ export default function ArticleRotator({
 
       if (freshPosts.length > 0) {
         setPosts(freshPosts);
-        if (process.env.NODE_ENV === 'development') {
-          console.log('📰 Article rotator: Refreshed posts in background');
-        }
+        devLog('📰 Article rotator: Refreshed posts in background');
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -253,7 +251,7 @@ export default function ArticleRotator({
   useEffect(() => {
     // Setup background refresh (every 10 minutes) - only once
     if (posts.length > 0 && !refreshIntervalRef.current) {
-      console.log('🔄 Setting up background post refresh every 10 minutes');
+      devLog('🔄 Setting up background post refresh every 10 minutes');
       refreshIntervalRef.current = setInterval(refreshPosts, 600000);
     }
 
@@ -279,10 +277,10 @@ export default function ArticleRotator({
       // Use shorter interval for testing: 5 seconds in dev, 30 seconds in production
       const testInterval = process.env.NODE_ENV === 'development' ? 5000 : rotationInterval;
       
-      console.log(`⏰ Starting ${testInterval/1000}-second timer for post ${currentIndex + 1}/${posts.length}`);
+      devLog(`⏰ Starting ${testInterval/1000}-second timer for post ${currentIndex + 1}/${posts.length}`);
       
       const timerId = setTimeout(() => {
-        console.log(`🔄 ${testInterval/1000} seconds up! Transitioning from post ${currentIndex + 1} to ${((currentIndex + 1) % posts.length) + 1}`);
+        devLog(`🔄 ${testInterval/1000} seconds up! Transitioning from post ${currentIndex + 1} to ${((currentIndex + 1) % posts.length) + 1}`);
         // Clear any pending transition timers before starting a new one
         if (transitionTimeoutRef.current) {
           clearTimeout(transitionTimeoutRef.current);
@@ -296,7 +294,7 @@ export default function ArticleRotator({
       return () => {
         if (timerId) {
           clearTimeout(timerId);
-          console.log(`⏹️ Cleared timer for post ${currentIndex + 1}`);
+          devLog(`⏹️ Cleared timer for post ${currentIndex + 1}`);
         }
       };
     }
@@ -344,7 +342,7 @@ export default function ArticleRotator({
   // Development debugging
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('📰 Article rotator status:', {
+      devLog('📰 Article rotator status:', {
         currentPost: currentPost?.id,
         currentIndex,
         totalPosts: posts.length,

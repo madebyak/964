@@ -55,7 +55,9 @@ export async function GET(request: Request) {
         return NextResponse.json(data);
       }
     } catch (directError) {
-      console.log('Direct fetch failed, trying proxy services...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Direct fetch failed, trying proxy services...');
+      }
     }
 
     // Method 2: Try proxy services (legacy fallback)
@@ -81,7 +83,9 @@ export async function GET(request: Request) {
           return NextResponse.json(data);
         }
       } catch (proxyError) {
-        console.log(`Proxy ${proxyService} failed, trying next...`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Proxy ${proxyService} failed, trying next...`);
+        }
         continue;
       }
     }
