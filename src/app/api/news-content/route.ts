@@ -15,7 +15,8 @@ export async function GET(request: Request) {
   // Always add content_text=true and ff parameters for full content
   const params = new URLSearchParams();
   params.set('content_text', 'true');
-  params.set('ff', '');
+  // Some backends treat bare flag differently; pass explicit truthy value
+  params.set('ff', '1');
   
   // Forward any additional query parameters from the request
   searchParams.forEach((value, key) => {

@@ -163,16 +163,19 @@ class NewsAPIService {
    * Fetch posts with full content (including article body) via proxy
    * Uses local API proxy to bypass Cloudflare restrictions
    */
-  async fetchPostsWithContent(params: NewsAPIParams = {}): Promise<Post[]> {
+  async fetchPostsWithContent(
+    params: NewsAPIParams = {},
+    options?: { serverBaseUrl?: string }
+  ): Promise<Post[]> {
     try {
       // Build URL - handle server-side vs client-side
       // Determine base URL for server-side fetches (Vercel/Node)
       // Priority: NEXTAUTH_URL → VERCEL_URL → localhost
       // Note: VERCEL_URL is the hostname only; must prefix with https://
       const baseUrl = typeof window === 'undefined'
-        ? (
-            process.env.NEXTAUTH_URL
-              || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+        ? (options?.serverBaseUrl
+            || process.env.NEXTAUTH_URL
+            || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
           )
         : '';
       
@@ -227,6 +230,28 @@ class NewsAPIService {
         content_text: post.content_text ? this.decodeHTMLEntities(post.content_text) : post.content_text,
       }));
 
+      // Filter out ads and non-displayable posts
+      const filteredPosts = postsWithDecodedContent.filter((p) => {
+        const titleOrContent = Boolean(
+          (p.title && p.title.trim().length > 0)
+          || (p.content_rendered && p.content_rendered.trim().length > 0)
+          || (p.content_text && p.content_text.trim().length > 0)
+        );
+        const hasImage = Boolean(
+          p.featured_image?.sizes?.large
+          || p.featured_image?.sizes?.full
+          || p.featured_image?.sizes?.medium_large
+          || p.featured_image?.sizes?.medium
+          || p.image_full
+        );
+        const hasVideo = Boolean(p.featured_video?.mp4);
+        const isAd = (
+          (typeof p.runtime_type === 'string' && p.runtime_type.toLowerCase().includes('ad'))
+          || (typeof p.variant === 'string' && p.variant.toLowerCase().includes('ad'))
+        );
+        return !isAd && (titleOrContent || hasImage || hasVideo);
+      });
+
       if (process.env.NODE_ENV === 'development') {
         console.log(`✅ News Content API success: fetched ${postsWithDecodedContent.length} posts with content`);
         if (postsWithDecodedContent.length > 0) {
@@ -242,7 +267,7 @@ class NewsAPIService {
         }
       }
 
-      return postsWithDecodedContent;
+      return filteredPosts;
     } catch (error) {
       console.error('News Content API error:', error);
       console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');

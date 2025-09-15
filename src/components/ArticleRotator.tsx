@@ -96,7 +96,28 @@ export default function ArticleRotator({
   }, [MEDIA_READY_TIMEOUT_MS, resolvePrimaryMedia]);
 
   // Get current post
-  const currentPost = posts[currentIndex] || null;
+  // Skip posts that have neither media nor content nor non-empty title
+  const findDisplayableIndex = useCallback((startIndex: number): number => {
+    if (posts.length === 0) return -1;
+    for (let i = 0; i < posts.length; i++) {
+      const idx = (startIndex + i) % posts.length;
+      const p = posts[idx];
+      const hasImage = Boolean(
+        p?.featured_image?.sizes?.large
+        || p?.featured_image?.sizes?.full
+        || p?.featured_image?.sizes?.medium_large
+        || p?.featured_image?.sizes?.medium
+      );
+      const hasVideo = Boolean(p?.featured_video?.mp4);
+      const hasContent = Boolean(p?.content_rendered || p?.content_text);
+      const hasTitle = Boolean(p?.title && p.title.trim().length > 0);
+      if (hasImage || hasVideo || hasContent || hasTitle) return idx;
+    }
+    return -1;
+  }, [posts]);
+
+  const displayIndex = findDisplayableIndex(currentIndex >= posts.length ? 0 : currentIndex);
+  const currentPost = displayIndex >= 0 ? posts[displayIndex] : null;
 
   // Extract current post data (same logic as original)
   const title = currentPost?.title ?? '—';
@@ -149,8 +170,9 @@ export default function ArticleRotator({
       devLog('🔄 out: complete', { index: currentIndex, id: posts[currentIndex]?.id });
       
       // Switch to next post AND set to 'ready-to-slide-in' state simultaneously
-      const nextIndex = (currentIndex + 1) % posts.length;
-      setCurrentIndex(nextIndex);
+      const nextIndexRaw = (currentIndex + 1) % posts.length;
+      const nextIndex = findDisplayableIndex(nextIndexRaw);
+      setCurrentIndex(nextIndex >= 0 ? nextIndex : nextIndexRaw);
       setAnimationPhase('ready-to-slide-in'); // NEW content positioned off-screen for slide-in
       
       // Preload media for the post after next
