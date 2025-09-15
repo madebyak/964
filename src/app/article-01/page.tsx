@@ -6,7 +6,7 @@ export const revalidate = 0; // always fetch latest
 
 export default async function Article01Page() {
   // Determine server base URL from request headers first (robust on Vercel)
-  const h = headers();
+  const h = await headers();
   const forwardedProto = h.get('x-forwarded-proto') || 'https';
   const forwardedHost = h.get('x-forwarded-host') || h.get('host') || process.env.VERCEL_URL;
   const headerOrigin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : undefined;
